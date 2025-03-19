@@ -1,48 +1,86 @@
 
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+preimagen = cv2.imread("perritos3.jpg")  
+imagen = cv2.resize(preimagen, (325, 230))
 
-imagen = cv2.imread("bordes1.jpg")
+#función para cambiar de color la imagen
+def cambiar_color(img, tipo):
+    img = img.astype(np.float32)
+    if tipo == "rosita":
+        img[:, :, 0] *= 0.56  #azul
+        img[:, :, 1] *= 0.2  #rojo
+    elif tipo == "verde":
+        img[:, :, 0] *= 0.5  #azul
+        img[:, :, 2] *= 0.2  #verde
+    img = np.clip(img, 0, 255).astype(np.uint8)
+    return img
 
-#definir el filtro de sobel (bordes verticales y horizontales)
-kernel_x = np.array([[-1, 0, 1], #cambios en horizontal-> da bordes verticales
-                     [-2, 0, 2], 
-                     [-1, 0, 1]])
+#aplicar cambio de color a imagen
+color_rosita = cambiar_color(imagen, "rosita")
+color_verde = cambiar_color(imagen, "verde")
 
-kernel_y = np.array([[-1, -2, -1], #cambios en vertical-> da bordes horizontales
-                     [ 0,  0,  0], 
-                     [ 1,  2,  1]])
+#función clasificador para imagen original y de color
+def clasificador1(imagen):
+    m,n,c=imagen.shape
+    imagenb=np.zeros((m,n))
+    for x in range(m):
+        for y in range(n):
+            if 10<imagen[x,y,0]<119 and 4<imagen[x,y,1]<166 and 0<imagen[x,y,2]<197:
+                imagenb[x,y]=255
+    return imagenb
 
-#aplicar el filtro en cada canal (BGR)
-Gx_b = cv2.filter2D(imagen[:, :, 0], -1, kernel_x)
-Gx_g = cv2.filter2D(imagen[:, :, 1], -1, kernel_x)
-Gx_r = cv2.filter2D(imagen[:, :, 2], -1, kernel_x)
+#aplicar el primer clasificador a la imagen original y a las de color
+clas1_original = clasificador1(imagen)
+clas1_rosita = clasificador1(color_rosita)
+clas1_verde = clasificador1(color_verde)
 
-Gy_b = cv2.filter2D(imagen[:, :, 0], -1, kernel_y)
-Gy_g = cv2.filter2D(imagen[:, :, 1], -1, kernel_y)
-Gy_r = cv2.filter2D(imagen[:, :, 2], -1, kernel_y)
+#función white patch
+def white_patch(img):
+    img = img.astype(np.float32)
+    max_vals = np.max(img, axis=(0, 1), keepdims=True)  #max de BGR
+    max_vals[max_vals == 0] = 1  #reemplazar 0 por 1
+    img = img / max_vals * 255  #formual white patch
+    img = np.clip(img, 0, 255).astype(np.uint8)  #rango de 0-255
+    return img
 
-#fusionar los resultados en una imagen 
-Gx = cv2.merge([Gx_b, Gx_g, Gx_r]) #imagen bordes x
-Gy = cv2.merge([Gy_b, Gy_g, Gy_r]) #imagen bordes y
+#aplicar el algoritmo white patch a las imagenes
+wp_original = white_patch(imagen)
+wp_rosita = white_patch(color_rosita)
+wp_verde = white_patch(color_verde)
 
-#calcular magnitud del gradiente en cada canal y luego fusionarlos
-G = np.sqrt(Gx.astype(np.float64) ** 2 + Gy.astype(np.float64) ** 2)
-G = np.uint8(G * 255 / np.max(G))  # normalización para que queden en 0-255
+#función clasificador para imagen de white patch
+def clasificador2(img):
+    m, n, _ = img.shape
+    img_binaria = np.ones((m, n), dtype=np.uint8) * 0
+    img = img.astype(np.float32) 
+    for x in range(m):
+        for y in range(n):
+            b, g, r = img[x, y]
+            if 10 <= b <= 119 and 4 <= g <= 166 and 0 <= r <= 197:
+                img_binaria[x, y] = 255
+    return img_binaria
 
-#mostrar las imagenes 
-fig, axes = plt.subplots(1, 4, figsize=(15, 5))
-axes[0].imshow(cv2.cvtColor(imagen, cv2.COLOR_BGR2RGB))  #convertir de BGR a RGB para visualizar img
-axes[0].set_title("Imagen Original")
-axes[1].imshow(cv2.cvtColor(Gx, cv2.COLOR_BGR2RGB))
-axes[1].set_title("Bordes Verticales")
-axes[2].imshow(cv2.cvtColor(Gy, cv2.COLOR_BGR2RGB))
-axes[2].set_title("Bordes Horizontales")
-axes[3].imshow(cv2.cvtColor(G, cv2.COLOR_BGR2RGB))
-axes[3].set_title("Magnitud del Gradiente")
+#aplicar el clasificador a las imagenes que dio el white patch
+clas2_original = clasificador2(wp_original)
+clas2_rosita = clasificador2(wp_rosita)
+clas2_verde = clasificador2(wp_verde)
 
-for ax in axes:
-    ax.axis("off")
 
-plt.show()
+#mostrar imagenes
+cv2.imshow("Original", imagen)
+cv2.imshow("Color Rosita", color_rosita)
+cv2.imshow("Color Verde", color_verde)
+cv2.imshow("Clasificador Original", clas1_original)
+cv2.imshow("Clasificador Rosita", clas1_rosita)
+cv2.imshow("Clasificador Verde", clas1_verde)
+cv2.imshow("White Patch Original", wp_original)
+cv2.imshow("White Patch Rosita", wp_rosita)
+cv2.imshow("White Patch Verde", wp_verde)
+cv2.imshow("Clasificada WP Original", clas2_original)
+cv2.imshow("Clasificada WP Rosita", clas2_rosita)
+cv2.imshow("Clasificada WP Verde", clas2_verde)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
