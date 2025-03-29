@@ -1,5 +1,3 @@
-
-
 import cv2
 import numpy as np
 preimagen = cv2.imread("perritos3.jpg")  
@@ -7,19 +5,20 @@ imagen = cv2.resize(preimagen, (325, 230))
 
 #función para cambiar de color la imagen
 def cambiar_color(img, tipo):
-    img = img.astype(np.float32)
+    img = img.astype(np.float32) #convertir la imagen a float
+    #cambiar los valores de los canales de color
     if tipo == "rosita":
-        img[:, :, 0] *= 0.56  #azul
-        img[:, :, 1] *= 0.2  #rojo
+        img[:, :, 0] *= 0.56  #azul Cambio en B
+        img[:, :, 1] *= 0.2  #rojo Cambio en G
     elif tipo == "verde":
-        img[:, :, 0] *= 0.5  #azul
-        img[:, :, 2] *= 0.2  #verde
-    img = np.clip(img, 0, 255).astype(np.uint8)
+        img[:, :, 0] *= 0.5  #azul Cambio en B
+        img[:, :, 2] *= 0.2  #verde Cambio en R
+    img = np.clip(img, 0, 255).astype(np.uint8) #rango de 0-255
     return img
 
 #aplicar cambio de color a imagen
-color_rosita = cambiar_color(imagen, "rosita")
-color_verde = cambiar_color(imagen, "verde")
+color_rosita = cambiar_color(imagen, "rosita") #llamar a la función cambiar_color
+color_verde = cambiar_color(imagen, "verde") #llamar a la función cambiar_color
 
 #función clasificador para imagen original y de color
 def clasificador1(imagen):
@@ -37,9 +36,9 @@ clas1_rosita = clasificador1(color_rosita)
 clas1_verde = clasificador1(color_verde)
 
 #función white patch
-def white_patch(img):
-    img = img.astype(np.float32)
-    max_vals = np.max(img, axis=(0, 1), keepdims=True)  #max de BGR
+def white_patch(img): #normalizar la imagen
+    img = img.astype(np.float32) #convertir la imagen a float
+    max_vals = np.max(img, axis=(0, 1), keepdims=True)  #max valor de BGR
     max_vals[max_vals == 0] = 1  #reemplazar 0 por 1
     img = img / max_vals * 255  #formual white patch
     img = np.clip(img, 0, 255).astype(np.uint8)  #rango de 0-255
